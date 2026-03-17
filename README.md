@@ -51,6 +51,30 @@ Following segmentation, classical image processing techniques are applied to ref
 
 ---
 
+## Environment & Dependencies
+
+* **Python:** 3.10.20
+
+### Libraries
+
+* cellpose==3.1.0
+* numpy==2.0.2
+* matplotlib==3.10.8
+* Pillow==12.1.1
+* scikit-image==0.25.2
+* opencv-python==4.13.0.92
+* scipy==1.15.3
+
+---
+
+## Installation
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
 ## Goal
 
 To build a robust computational pipeline that combines AI-based segmentation with image processing for accurate and interpretable analysis of bacterial morphology in SEM images.
@@ -60,5 +84,3 @@ To build a robust computational pipeline that combines AI-based segmentation wit
 ## Notes
 
 This project was developed as part of an M.Sc. research project.
-
-
