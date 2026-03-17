@@ -1,9 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
 from PIL import Image
-from cellpose import models, plot
-from skimage import measure
+from cellpose import models
 from skimage.measure import regionprops
 import cv2
 from scipy.spatial import cKDTree
