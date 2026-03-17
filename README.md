@@ -55,15 +55,21 @@ Following segmentation, classical image processing techniques are applied to ref
 
 * **Python:** 3.10.20
 
-### Libraries
+### Dependencies
 
-* cellpose==3.1.0
-* numpy==2.0.2
-* matplotlib==3.10.8
-* Pillow==12.1.1
-* scikit-image==0.25.2
-* opencv-python==4.13.0.92
-* scipy==1.15.3
+This project uses Python 3.10.20 and relies mainly on:
+
+- Cellpose
+- NumPy
+- Matplotlib
+- Pillow
+- scikit-image
+- OpenCV
+- SciPy
+- Pandas
+- Seaborn
+
+For the full environment and exact versions, see `requirements.txt`.
 
 ---
 
