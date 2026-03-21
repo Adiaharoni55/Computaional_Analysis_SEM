@@ -87,14 +87,17 @@ ctrl_df = all_data[all_data["treatment"] == "control"]
 
 for col, title, _ in PLOTS:
     print(f"── {title} — Cliff's δ vs control ──────────────────────────────")
-    print(f"  {'Treatment':<14} {'n_ctrl':>6} {'n_trt':>6} {'δ':>8} {'effect':>8}")
-    print("-" * 50)
+    print(f"  {'Treatment':<14} {'n_ctrl':>6} {'n_trt':>6} {'δ':>8} {'effect':>8} {'min':>10} {'max':>10}")
+    print("-" * 70)
     ctrl_vals = ctrl_df[col].dropna().values
+    all_feature_vals = all_data[col].dropna().values
+    print(f"  {'[overall]':<14} {'':>6} {'':>6} {'':>8} {'':>8} {all_feature_vals.min():>10.3f} {all_feature_vals.max():>10.3f}")
     for t in TREATMENT_ORDER[1:]:
         trt_vals = all_data[all_data["treatment"] == t][col].dropna().values
         d = cliffs_delta(ctrl_vals, trt_vals)
         lbl = delta_label(d)
-        print(f"  {TREATMENT_LABELS[t]:<14} {len(ctrl_vals):>6} {len(trt_vals):>6} {d:>8.3f} {lbl:>8}")
+        print(f"  {TREATMENT_LABELS[t]:<14} {len(ctrl_vals):>6} {len(trt_vals):>6} {d:>8.3f} {lbl:>8} {trt_vals.min():>10.3f} {trt_vals.max():>10.3f}")
+    print(f"  {'control':<14} {len(ctrl_vals):>6} {'':>6} {'':>8} {'':>8} {ctrl_vals.min():>10.3f} {ctrl_vals.max():>10.3f}")
     print()
 
 

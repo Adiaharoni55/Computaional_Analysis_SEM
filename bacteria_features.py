@@ -602,119 +602,75 @@ def visualize_filter(image, bacteria_list_filtered, merged_bacteria_list, output
     plt.savefig(output_path)
     plt.close()
 
-def estimate_image_noise(img, bacteria_list, percentile=25):
+def add_texture(bacteria_list, image):
     """
-    Estimate the image noise floor from the smoothest bacteria in the image.
-    Uses the lowest-texture-percentile cells as 'noise-only' reference.
-    Returns noise RMS in CV units.
+    Calculate surface texture (roughness) for all bacteria using polynomial surface fitting.
+    Adds 'texture' key to each bacteria dict.
     """
-    # Collect raw RMS and local mean per bacterium (before CV normalization)
-    raw_rms_list = []
-
+    # Normalize image once
+    if image.dtype == np.uint8:
+        img = image.astype(np.float64) / 255.0
+    else:
+        img = image.astype(np.float64)
+        if img.max() > 1:
+            img = img / img.max()
+    
     for b in bacteria_list:
+        # Create mask
         mask = np.zeros(img.shape[:2], dtype=np.uint8)
         cv2.drawContours(mask, [b['contour']], -1, 1, thickness=-1)
-
+        
+        # Erode to avoid edges
         kernel = np.ones((7, 7), np.uint8)
         inner_mask = cv2.erode(mask, kernel, iterations=2)
-
-        ys, xs = np.where(mask == 1)
-        if len(ys) == 0:
-            continue
-
-        pad = 5
-        y1, y2 = max(0, ys.min() - pad), min(img.shape[0], ys.max() + pad)
-        x1, x2 = max(0, xs.min() - pad), min(img.shape[1], xs.max() + pad)
-
-        patch  = img[y1:y2, x1:x2].astype(float)
-        mask_p = inner_mask[y1:y2, x1:x2]
-        valid  = mask_p > 0
-
-        if valid.sum() < 50:
-            continue
-
-        yy, xx = np.where(valid)
-        values = patch[valid]
-        n_valid = len(values)
-
-        h, w = patch.shape
-        xx_norm = (xx - w / 2) / (w / 2)
-        yy_norm = (yy - h / 2) / (h / 2)
-
-        A = np.column_stack([
-            np.ones(n_valid), xx_norm, yy_norm,
-            xx_norm**2, yy_norm**2, xx_norm * yy_norm
-        ])
-        coeffs, _, _, _ = np.linalg.lstsq(A, values, rcond=None)
-        residual   = values - A @ coeffs
-        local_mean = float(np.mean(values))
-
-        if local_mean > 0:
-            raw_rms_list.append(np.sqrt(np.mean(residual**2)) / local_mean)
-
-    if not raw_rms_list:
-        return 0.0
-
-    # Noise floor = median of the bottom percentile of CV scores
-    return float(np.percentile(raw_rms_list, percentile))
-
-
-def add_texture(bacteria_list, img, noise_floor=None):
-    """
-    Calculate texture (CV) and optionally subtract a noise floor.
-    If noise_floor is None, no correction is applied.
-    Texture is clipped to 0 so it never goes negative.
-    """
-    for b in bacteria_list:
-        mask = np.zeros(img.shape[:2], dtype=np.uint8)
-        cv2.drawContours(mask, [b['contour']], -1, 1, thickness=-1)
-
-        kernel = np.ones((7, 7), np.uint8)
-        inner_mask = cv2.erode(mask, kernel, iterations=2)
-
+        
+        # Get bounding box
         ys, xs = np.where(mask == 1)
         if len(ys) == 0:
             b['texture'] = 0.0
             continue
-
+        
         pad = 5
         y1, y2 = max(0, ys.min() - pad), min(img.shape[0], ys.max() + pad)
         x1, x2 = max(0, xs.min() - pad), min(img.shape[1], xs.max() + pad)
-
-        patch  = img[y1:y2, x1:x2].astype(float)
+        
+        patch = img[y1:y2, x1:x2]
         mask_p = inner_mask[y1:y2, x1:x2]
-        valid  = mask_p > 0
-        n_valid = valid.sum()
 
+        valid = mask_p > 0
+        n_valid = np.sum(valid)
         if n_valid < 50:
             b['texture'] = 0.0
             continue
 
-        yy, xx = np.where(valid)
-        values = patch[valid]
+        # Edge-preserving smoothing: removes pixel-level noise but preserves
+        # real membrane ridges/bumps (spatially coherent structures)
+        patch_smooth = cv2.bilateralFilter(
+            patch.astype(np.float32), d=9, sigmaColor=0.08, sigmaSpace=9
+        ).astype(np.float64)
 
+        # Get coordinates and values
+        yy, xx = np.where(valid)
+        values = patch_smooth[valid]
+        
         h, w = patch.shape
         xx_norm = (xx - w / 2) / (w / 2)
         yy_norm = (yy - h / 2) / (h / 2)
-
+        
+        # Fit 2nd order polynomial: z = a + bx + cy + dx² + ey² + fxy
         A = np.column_stack([
             np.ones(n_valid), xx_norm, yy_norm,
             xx_norm**2, yy_norm**2, xx_norm * yy_norm
         ])
+        
         coeffs, _, _, _ = np.linalg.lstsq(A, values, rcond=None)
-        residual   = values - A @ coeffs
-        local_mean = float(np.mean(values))
-
-        if local_mean > 0:
-            cv = np.sqrt(np.mean(residual**2)) / local_mean
-            if noise_floor and noise_floor > 0:
-                b['texture'] = float(max(0.0, cv / noise_floor - 1.0))
-            else:
-                b['texture'] = float(cv)
-        else:
-            b['texture'] = 0.0
-
+        fitted = A @ coeffs
+        residual = values - fitted
+        
+        b['texture'] = np.sqrt(np.mean(residual**2))
+    
     return bacteria_list
+
 
 def process_image(image_path):
     original_image = np.array(Image.open(image_path).convert("L"))
@@ -754,9 +710,7 @@ def process_image(image_path):
 
     visualize_filter(image, bacteria_list_filtered, merged_bacteria_list, output_path)
 
-    noise = estimate_image_noise(image, bacteria_list_filtered)
-
-    bacteria_list_texture = add_texture(bacteria_list_filtered, image, noise_floor=noise)
+    bacteria_list_texture = add_texture(bacteria_list_filtered, image)
 
     return bacteria_list_texture
 
