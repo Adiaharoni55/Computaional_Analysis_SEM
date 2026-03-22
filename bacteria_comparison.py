@@ -144,13 +144,17 @@ def make_boxplot(col: str, title: str, ylabel: str):
     y_range = all_vals.max() - all_vals.min()
     y_offset = y_range * 0.04
 
+    print(f"\n── {title} — per-group stats ──────────────────────────────")
+    print(f"  {'Treatment':<14} {'n':>6} {'δ vs ctrl':>10}")
+    print(f"  {'Control':<14} {len(ctrl_vals):>6} {'—':>10}")
     for i, (t, g) in enumerate(zip(TREATMENT_ORDER[1:], groups[1:]), start=2):
         d = cliffs_delta(ctrl_vals, g)
         lbl = delta_label(d)
         direction = "" if lbl == "ns" else ("↑" if np.median(g) > np.median(ctrl_vals) else "↓")
+        print(f"  {TREATMENT_LABELS[t]:<14} {len(g):>6} {d:>+10.3f}  {lbl}{direction}")
         whisker_top = np.percentile(g, 75) + 1.5 * (np.percentile(g, 75) - np.percentile(g, 25))
         whisker_top = min(whisker_top, g.max())
-        annotation = f"{lbl}{direction}\nδ={d:.2f}"
+        annotation = f"{lbl}{direction}"
         ax.text(i, whisker_top + y_offset, annotation,
                 ha="center", va="bottom", fontsize=9, fontweight="bold", color="#333333")
 
