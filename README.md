@@ -5,7 +5,7 @@
 This project focuses on the detection and analysis of bacterial structures in Scanning Electron Microscopy (SEM) images. It contains two main scripts, each targeting a different aspect of the analysis:
 
 * **`bacteria_features.py`** — Segments individual bacteria using Cellpose and extracts per-cell morphological features.
-* **`biofilm_stracture.py`** — Analyzes the biofilm matrix structure using edge detection and tile-based texture analysis, without relying on cell segmentation.
+* **`biofilm_structure.py`** — Analyzes the biofilm matrix structure using edge detection and tile-based texture analysis, without relying on cell segmentation.
 
 ---
 
@@ -18,23 +18,21 @@ This script runs a full per-bacterium analysis pipeline on SEM images:
    * Major and minor radius (in µm)
    * Area (in µm²)
    * Aspect ratio
-   * Circularity
    * Ellipse fit score (IoU between actual shape and fitted ellipse)
-3. **Split-pair detection** — Identifies pairs of bacteria that were incorrectly split by the segmenter (sharing a boundary, forming a straight junction, and fitting a single ellipse when merged), and merges them into one cell.
-4. **Shape filtering** — Removes bacteria that are cut off by the image border or heavily occluded by neighbors (low ellipse fit score).
-5. **Texture measurement** — Computes a noise-corrected coefficient of variation (CV) for each bacterium's internal surface texture using the inner pixel region.
-6. **Output** — Saves a CSV per image under `results/feature_extraction/features/{treatment}/` with columns: `bacteria_id`, `center`, `major_radius`, `minor_radius`, `area`, `aspect_ratio`, `texture`.
+3. **Shape filtering** — Removes bacteria that are: (i) cut off by the image border, (ii) heavily occluded by neighbors (low ellipse fit score < 0.8), (iii) below a minimum area threshold (1,000 px²), or (iv) defined by fewer than 5 contour points.
+4. **Texture measurement** — Computes per-cell surface texture as the RMS of residuals after fitting a 2nd-order polynomial surface to the normalized grayscale intensity within the eroded cell interior. Higher values indicate rougher, more damaged surfaces.
+5. **Output** — Saves a CSV per image under `results/feature_extraction/features/{treatment}/` with columns: `bacteria_id`, `center`, `major_radius`, `minor_radius`, `area`, `aspect_ratio`, `texture`.
 
 ---
 
-## Script 2: `biofilm_stracture.py` — Biofilm Matrix Structure Analysis
+## Script 2: `biofilm_structure.py` — Biofilm Matrix Structure Analysis
 
 This script characterizes the spatial texture of the biofilm matrix across the image — independent of individual cell segmentation:
 
-1. **Background detection** — Uses tile-based variance analysis to distinguish true empty substrate (background) from biofilm-covered regions. Only biofilm-covered areas are analyzed.
-2. **Edge detection** — Applies morphological opening, weighted least-squares smoothing, and Sobel filtering to extract structural edges. Small noise artifacts are removed by connected-component filtering.
-3. **Tile-based texture analysis** — Slides a 100×100 px window across the biofilm region and computes the standard deviation of edge intensities per tile, producing a texture score map.
-4. **Heatmap visualization** — Generates a 4-panel figure per image: original, edge map, smoothed texture heatmap overlaid on edges, and a histogram of tile texture scores.
+1. **Background detection** — Uses tile-based variance analysis (10×10 px tiles) to distinguish true empty substrate (background) from biofilm-covered regions. Tiles with edge-signal standard deviation below 5 and a surrounding contrast ratio ≥ 20× are classified as background and excluded from analysis.
+2. **Edge detection** — Applies morphological opening (3×3 elliptical kernel, 2 iterations), weighted least-squares smoothing, and Sobel filtering in both x and y directions to extract structural edges. Small isolated edge components below 500 px² are removed as noise.
+3. **Tile-based texture analysis** — Slides a 100×100 px window (stride = 50 px) across biofilm-covered regions and computes the standard deviation of edge intensities per tile, producing a texture score map.
+4. **Heatmap visualization** — Generates a 4-panel figure per image: original image, edge map, smoothed texture heatmap overlaid on edges, and a histogram of tile texture scores.
 5. **Output** — Saves PNG visualizations per image and CSV summaries including bacteria coverage (%), mean texture, and per-tile values under `results/matrix/`.
 
 ---
@@ -85,7 +83,6 @@ This project uses Python 3.10.20 and relies mainly on:
 - OpenCV
 - SciPy
 - Pandas
-- Seaborn
 
 For the full environment and exact versions, see `requirements.txt`.
 
@@ -101,7 +98,7 @@ pip install -r requirements.txt
 
 ## Goal
 
-To build a robust computational pipeline that combines AI-based segmentation with image processing for accurate and interpretable analysis of bacterial morphology in SEM images.
+To build a robust computational pipeline that combines AI-based segmentation with image processing for accurate and interpretable analysis of bacterial morphology and biofilm matrix structure in SEM images.
 
 ---
 
