@@ -14,7 +14,7 @@ warnings.filterwarnings('ignore')
 # ============================================================================
 INPUT_DIR  = Path('./data')
 OUTPUT_DIR = Path('./results/matrix')
-TREATMENTS = ['0.1 Eth', '6.25 ug:ml', '12.5 ug:ml', '25 ug:ml', '50 ug:ml', 'control']
+TREATMENTS = ['6.25 ug:ml', '12.5 ug:ml', '25 ug:ml', '50 ug:ml', 'control']
 
 CROP_BOTTOM = 70
 
@@ -298,7 +298,7 @@ def process_all():
         )
 
         # path = ./data/{treatment}/20000/{file}.tif
-        treatment_name = path.parent.parent.name  # e.g. "control", "0.1 Eth"
+        treatment_name = path.parent.parent.name  # e.g. "control", "6.25 ug/ml"
         magnification  = path.parent.name         # "20000"
 
         t_clean = treatment_name.replace(' ', '_').replace(':', '')

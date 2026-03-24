@@ -16,7 +16,7 @@ DIAMETER = None
 
 INPUT_DIR  = Path('./data')
 OUTPUT_DIR = Path('./results/feature_extraction')
-TREATMENTS = ['0.1 Eth', '6.25 ug:ml', '12.5 ug:ml', '25 ug:ml', '50 ug:ml', 'control']
+TREATMENTS = ['6.25 ug:ml', '12.5 ug:ml', '25 ug:ml', '50 ug:ml', 'control']
 
 
 def run_segmentation(img):
@@ -111,7 +111,6 @@ def extract_bacteria_features(mask: np.ndarray, min_contour_pts: int = 5,
             'area_pixels':         prop.area,
             'area':                prop.area * ratio ** 2,
             'aspect_ratio':        major_px / minor_px if minor_px > 0 else float('inf'),
-            'circularity':         (4 * np.pi * prop.area / perimeter ** 2) if perimeter > 0 else 0.0,
             'ellipse_fit_score':   compute_ellipse_fit_score(contour, mask_shape),
             'touches_border':      is_touching_border(contour, mask_shape),
         })
@@ -171,8 +170,6 @@ def visualize_filter(image, bacteria_list_filtered, merged_bacteria_list, output
             label = f'Kept'
             kept_plotted = True
         elif not is_kept and not deleted_plotted:
-            efs = bacteria['ellipse_fit_score']
-            circ = bacteria['circularity']
             label = f'Removed'
             deleted_plotted = True
 
@@ -274,7 +271,7 @@ def process_image(image_path):
     bacteria_list = extract_bacteria_features(masks)
 
     # # path = ./data/{treatment}/20000/{sample}.tif
-    treatment = image_path.parent.parent.name   # e.g. "control", "0.1 Eth"
+    treatment = image_path.parent.parent.name   # e.g. "control", "6.25 ug/ml"
     sample    = image_path.stem                 # e.g. "Sample 7_07"
 
     bacteria_list_filtered = filter_bacteria_by_shape(
