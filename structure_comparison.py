@@ -15,7 +15,6 @@ df = pd.read_csv("results/matrix/combined_summary.csv")
 # Treatment display order (control first, then ascending concentration)
 TREATMENT_ORDER = [
     "control",
-    "0.1 Eth",
     "6.25 ug:ml",
     "12.5 ug:ml",
     "25 ug:ml",
@@ -24,7 +23,6 @@ TREATMENT_ORDER = [
 
 TREATMENT_LABELS = {
     "control":     "Control",
-    "0.1 Eth":     "0.1% EtOH",
     "6.25 ug:ml":  "6.25 µg/ml",
     "12.5 ug:ml":  "12.5 µg/ml",
     "25 ug:ml":    "25 µg/ml",
@@ -85,7 +83,7 @@ ax.set_xticklabels([TREATMENT_LABELS[t] for t in TREATMENT_ORDER], fontsize=11)
 ax.set_ylabel("Mean Matrix Value (image mean)", fontsize=12)
 ax.set_xlabel("Treatment", fontsize=12)
 ax.set_title(
-    "Biofilm Stracture Comparison Across Treatments",
+    "Biofilm Structure Comparison Across Treatments",
     fontsize=13, fontweight="bold", pad=12,
 )
 

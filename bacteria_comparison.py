@@ -16,7 +16,6 @@ os.makedirs(OUT_DIR, exist_ok=True)
 
 TREATMENT_ORDER = [
     "control",
-    "0.1 Eth",
     "6.25 ug:ml",
     "12.5 ug:ml",
     "25 ug:ml",
@@ -25,7 +24,6 @@ TREATMENT_ORDER = [
 
 TREATMENT_LABELS = {
     "control":     "Control",
-    "0.1 Eth":     "0.1% EtOH",
     "6.25 ug:ml":  "6.25 µg/ml",
     "12.5 ug:ml":  "12.5 µg/ml",
     "25 ug:ml":    "25 µg/ml",
@@ -130,7 +128,7 @@ def make_boxplot(col: str, title: str, ylabel: str):
     ax.set_xticks(range(1, len(TREATMENT_ORDER) + 1))
     ax.set_xticklabels([TREATMENT_LABELS[t] for t in TREATMENT_ORDER], fontsize=11)
     ax.set_ylabel(ylabel, fontsize=12)
-    ax.set_xlabel("Treatment", fontsize=12)
+    ax.set_xlabel("Arachidonic Acid Treatment", fontsize=12)
     ax.set_title(f"Bacteria {title} Comparison Across Treatments",
                  fontsize=13, fontweight="bold", pad=40)
     ax.yaxis.grid(True, linestyle="--", alpha=0.5, color="#aaaaaa")
@@ -157,10 +155,6 @@ def make_boxplot(col: str, title: str, ylabel: str):
         annotation = f"{lbl}{direction}"
         ax.text(i, whisker_top + y_offset, annotation,
                 ha="center", va="bottom", fontsize=9, fontweight="bold", color="#333333")
-
-    # Legend for effect size
-    legend_text = "ns = not significant (|δ|<0.147)  * = small  ** = medium  *** = large (|δ|≥0.474)"
-    fig.text(0.5, 0.01, legend_text, ha="center", fontsize=8, color="#555555")
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     fname = os.path.join(OUT_DIR, f"{col}_comparison.png")
