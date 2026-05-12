@@ -67,22 +67,13 @@ def get_biofilm_mask(img):
         if region_mean > BG_MAX_REGION_MEAN:
             continue
 
-        region_coords = np.where(region_mask)
-        touches_edge  = (
-            np.min(region_coords[0]) == 0 or
-            np.max(region_coords[0]) == scores.shape[0] - 1 or
-            np.min(region_coords[1]) == 0 or
-            np.max(region_coords[1]) == scores.shape[1] - 1
-        )
-
         border = binary_dilation(region_mask, iterations=1) & ~region_mask
         contrast_ratio = (
             np.mean(scores[border]) / region_mean
             if np.sum(border) > 0 and region_mean > 0 else 0
         )
         is_sudden = contrast_ratio >= BG_MIN_CONTRAST_RATIO
-
-        if is_sudden and ((region_size >= 5 and touches_edge) or region_size >= 10):
+        if is_sudden:
             background_mask[region_mask] = True
 
     bg_mask_tiles = binary_closing(background_mask, iterations=1)

@@ -93,10 +93,19 @@ def extract_bacteria_features(mask: np.ndarray, min_contour_pts: int = 5,
         if prop.area < min_area_px:
             dropped.append((prop.label, prop.centroid, f'area too small ({prop.area} px < {min_area_px})'))
             continue
+        
         # ─────────────────────────────────────────────────────────
+        ellipse = cv2.fitEllipse(contour)
+        (cx, cy), (ax1, ax2), angle = ellipse
 
-        major_px = prop.major_axis_length / 2
-        minor_px = prop.minor_axis_length / 2
+        if ax2 > ax1:
+            major_px = ax2 / 2
+            minor_px = ax1 / 2
+            angle = angle + 90  # rotate angle to match the actual major axis
+        else:
+            major_px = ax1 / 2
+            minor_px = ax2 / 2
+
         
         perimeter = cv2.arcLength(contour, True)
 
@@ -108,18 +117,15 @@ def extract_bacteria_features(mask: np.ndarray, min_contour_pts: int = 5,
             'minor_radius_pixels': minor_px,
             'major_radius':        major_px * ratio,
             'minor_radius':        minor_px * ratio,
+            'ellipse_angle':       angle,
             'area_pixels':         prop.area,
             'area':                prop.area * ratio ** 2,
             'aspect_ratio':        major_px / minor_px if minor_px > 0 else float('inf'),
+            'circularity':         (4 * np.pi * prop.area / perimeter ** 2) if perimeter > 0 else 0.0,
             'ellipse_fit_score':   compute_ellipse_fit_score(contour, mask_shape),
             'touches_border':      is_touching_border(contour, mask_shape),
         })
 
-    # ── report dropped ────────────────────────────────────────────
-    if dropped:
-        print(f"Dropped {len(dropped)} regions:")
-        for label, centroid, reason in dropped:
-            print(f"  label={label:3d}  center=({int(centroid[1])}, {int(centroid[0])})  reason: {reason}")
 
     return bacteria_list
 

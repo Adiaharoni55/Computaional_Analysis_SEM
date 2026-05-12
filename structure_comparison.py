@@ -8,6 +8,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 from itertools import combinations
+import matplotlib.cm as cm
+
 
 # ── Load data ──────────────────────────────────────────────────────────────────
 df = pd.read_csv("results/matrix/combined_summary.csv")
@@ -63,7 +65,10 @@ for (t1, g1), (t2, g2) in combinations(zip(TREATMENT_ORDER, groups), 2):
 # ── Plot ────────────────────────────────────────────────────────────────────────
 fig, ax = plt.subplots(figsize=(10, 6))
 
-blues = ["#4a7ba7"] * len(TREATMENT_ORDER)
+medians = [np.median(g) for g in groups]
+norm = plt.Normalize(min(medians), max(medians))
+cmap = cm.get_cmap('Blues_r')
+blues = [cmap(norm(m)) for m in medians]
 
 bp = ax.boxplot(
     groups,
