@@ -31,13 +31,12 @@ TREATMENT_LABELS = {
 }
 
 PLOTS = [
-    ("minor_radius", "Minor Axis",  "Minor Axis Length (µm)"),
-    ("major_radius", "Major Axis",  "Major Axis Length (µm)"),
-    ("aspect_ratio", "Ratio",       "Aspect Ratio (major/minor)"),
-    ("area",         "Area",        "Area (µm²)"),
-    ("texture",      "Texture",     "Texture (local std dev)"),
+    ("minor_axis", "(B) Minor Axis",  "Minor Axis Length (µm)"),
+    ("major_axis", "(A) Major Axis",  "Major Axis Length (µm)"),
+    ("aspect_ratio", "(C) Aspect Ratio", "Aspect Ratio (major/minor)"),
+    ("area",         "Area",             "Area (µm²)"),
+    ("texture",      "Texture",          "Texture (RMS residual)"),
 ]
-
 
 # ── Load data ──────────────────────────────────────────────────────────────────
 def load_treatment(treatment: str) -> pd.DataFrame:
@@ -99,8 +98,73 @@ for col, title, _ in PLOTS:
     print()
 
 
-# ── Plot helper ────────────────────────────────────────────────────────────────
-BLUE = "#4a7ba7"
+# # ── Plot helper ────────────────────────────────────────────────────────────────
+# BLUE = "#4a7ba7"
+
+# def make_boxplot(col: str, title: str, ylabel: str):
+#     groups = [
+#         all_data[all_data["treatment"] == t][col].dropna().values
+#         for t in TREATMENT_ORDER
+#     ]
+#     ctrl_vals = groups[0]
+
+#     fig, ax = plt.subplots(figsize=(12, 7))
+
+#     bp = ax.boxplot(
+#         groups,
+#         patch_artist=True,
+#         widths=0.55,
+#         showfliers=False,
+#         medianprops=dict(color="white", linewidth=2),
+#         whiskerprops=dict(color="#333333", linewidth=1.2),
+#         capprops=dict(color="#333333", linewidth=1.2),
+#     )
+#     for patch in bp["boxes"]:
+#         patch.set_facecolor(BLUE)
+#         patch.set_edgecolor("#333333")
+#         patch.set_linewidth(1.2)
+
+#     ax.set_xticks(range(1, len(TREATMENT_ORDER) + 1))
+#     ax.set_xticklabels([TREATMENT_LABELS[t] for t in TREATMENT_ORDER], fontsize=14)
+#     ax.set_ylabel(ylabel, fontsize=15)
+#     ax.set_xlabel("Arachidonic Acid Treatment", fontsize=15)
+#     ax.set_title(f"Bacteria {title} Comparison Across Treatments",
+#                 fontsize=16, fontweight="bold", pad=40)
+#     ax.tick_params(axis='y', labelsize=13)
+#     ax.set_axisbelow(True)
+#     if col in ("minor_axis", "major_axis"):
+#         ax.set_ylim(0, 2)
+#     ax.spines["top"].set_visible(False)
+#     ax.spines["right"].set_visible(False)
+
+#     # Significance annotations (Cliff's δ vs control)
+#     ctrl_mean = np.mean(ctrl_vals)
+#     all_vals = np.concatenate(groups)
+#     y_range = all_vals.max() - all_vals.min()
+#     y_offset = y_range * 0.04
+
+#     print(f"\n── {title} — per-group stats ──────────────────────────────")
+#     print(f"  {'Treatment':<14} {'n':>6} {'δ vs ctrl':>10}")
+#     print(f"  {'Control':<14} {len(ctrl_vals):>6} {'—':>10}")
+#     for i, (t, g) in enumerate(zip(TREATMENT_ORDER[1:], groups[1:]), start=2):
+#         d = cliffs_delta(ctrl_vals, g)
+#         lbl = delta_label(d)
+#         direction = "" if lbl == "ns" else ("↑" if np.median(g) > np.median(ctrl_vals) else "↓")
+#         print(f"  {TREATMENT_LABELS[t]:<14} {len(g):>6} {d:>+10.3f}  {lbl}{direction}")
+#         whisker_top = np.percentile(g, 75) + 1.5 * (np.percentile(g, 75) - np.percentile(g, 25))
+#         whisker_top = min(whisker_top, g.max())
+#         annotation = f"{lbl}{direction}"
+#         ax.text(i, whisker_top + y_offset, annotation,
+#                 ha="center", va="bottom", fontsize=9, fontweight="bold", color="#333333")
+
+#     plt.tight_layout(rect=[0, 0.03, 1, 1])
+#     fname = os.path.join(OUT_DIR, f"{col}_comparison.png")
+#     plt.savefig(fname, dpi=180, bbox_inches="tight")
+#     plt.close()
+#     print(f"Saved → {fname}")
+
+BLUE = "#2c5f8a"
+LIGHT_BLUE = "#d0e4f2"
 
 def make_boxplot(col: str, title: str, ylabel: str):
     groups = [
@@ -109,59 +173,75 @@ def make_boxplot(col: str, title: str, ylabel: str):
     ]
     ctrl_vals = groups[0]
 
-    fig, ax = plt.subplots(figsize=(10, 6))
+    fig, ax = plt.subplots(figsize=(12, 7))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("#f8f9fa")
 
     bp = ax.boxplot(
         groups,
         patch_artist=True,
         widths=0.55,
         showfliers=False,
-        medianprops=dict(color="white", linewidth=2),
-        whiskerprops=dict(color="#333333", linewidth=1.2),
-        capprops=dict(color="#333333", linewidth=1.2),
+        medianprops=dict(color="white", linewidth=2.5),
+        whiskerprops=dict(color=BLUE, linewidth=1.8, linestyle="--"),
+        capprops=dict(color=BLUE, linewidth=2.2),
+        boxprops=dict(linewidth=1.8),
     )
-    for patch in bp["boxes"]:
-        patch.set_facecolor(BLUE)
-        patch.set_edgecolor("#333333")
-        patch.set_linewidth(1.2)
 
-    ax.set_xticks(range(1, len(TREATMENT_ORDER) + 1))
-    ax.set_xticklabels([TREATMENT_LABELS[t] for t in TREATMENT_ORDER], fontsize=11)
-    ax.set_ylabel(ylabel, fontsize=12)
-    ax.set_xlabel("Arachidonic Acid Treatment", fontsize=12)
-    ax.set_title(f"Bacteria {title} Comparison Across Treatments",
-                 fontsize=13, fontweight="bold", pad=40)
-    ax.yaxis.grid(True, linestyle="--", alpha=0.5, color="#aaaaaa")
-    ax.set_axisbelow(True)
+    for i, patch in enumerate(bp["boxes"]):
+        patch.set_facecolor(BLUE)
+        patch.set_edgecolor(BLUE)
+        patch.set_linewidth(1.8)
+        patch.set_alpha(0.85)
+
+    # Bold axis borders
+    for spine in ["left", "bottom"]:
+        ax.spines[spine].set_linewidth(2.0)
+        ax.spines[spine].set_color("#222222")
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
-    # Significance annotations (Cliff's δ vs control)
-    ctrl_mean = np.mean(ctrl_vals)
+    ax.set_xticks(range(1, len(TREATMENT_ORDER) + 1))
+    ax.set_xticklabels(
+        [TREATMENT_LABELS[t] for t in TREATMENT_ORDER],
+        fontsize=14, fontweight="bold", color="#222222"
+    )
+    ax.set_ylabel(ylabel, fontsize=15, fontweight="bold", color="#222222", labelpad=10)
+    ax.set_xlabel("Arachidonic Acid Treatment", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
+    ax.set_title(
+        f"{title}",
+        fontsize=16, fontweight="bold", color="#1a1a2e", pad=40
+    )
+    ax.tick_params(axis='y', labelsize=13, width=2, length=5, color="#222222")
+    ax.tick_params(axis='x', width=2, length=5, color="#222222")
+    ax.yaxis.grid(True, linestyle="--", alpha=0.6, color="#cccccc", linewidth=1.0)
+    ax.set_axisbelow(True)
+
+    if col in ("minor_axis", "major_axis"):
+        ax.set_ylim(0, 4)
+
+    # Significance annotations
     all_vals = np.concatenate(groups)
     y_range = all_vals.max() - all_vals.min()
     y_offset = y_range * 0.04
 
-    print(f"\n── {title} — per-group stats ──────────────────────────────")
-    print(f"  {'Treatment':<14} {'n':>6} {'δ vs ctrl':>10}")
-    print(f"  {'Control':<14} {len(ctrl_vals):>6} {'—':>10}")
     for i, (t, g) in enumerate(zip(TREATMENT_ORDER[1:], groups[1:]), start=2):
         d = cliffs_delta(ctrl_vals, g)
         lbl = delta_label(d)
         direction = "" if lbl == "ns" else ("↑" if np.median(g) > np.median(ctrl_vals) else "↓")
-        print(f"  {TREATMENT_LABELS[t]:<14} {len(g):>6} {d:>+10.3f}  {lbl}{direction}")
         whisker_top = np.percentile(g, 75) + 1.5 * (np.percentile(g, 75) - np.percentile(g, 25))
         whisker_top = min(whisker_top, g.max())
         annotation = f"{lbl}{direction}"
+        color = "#2980b9"
         ax.text(i, whisker_top + y_offset, annotation,
-                ha="center", va="bottom", fontsize=9, fontweight="bold", color="#333333")
+                ha="center", va="bottom", fontsize=10,
+                fontweight="bold", color=color)
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     fname = os.path.join(OUT_DIR, f"{col}_comparison.png")
-    plt.savefig(fname, dpi=180, bbox_inches="tight")
+    plt.savefig(fname, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close()
     print(f"Saved → {fname}")
-
 
 # ── Generate all 5 plots ───────────────────────────────────────────────────────
 for col, title, ylabel in PLOTS:

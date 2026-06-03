@@ -99,12 +99,12 @@ def extract_bacteria_features(mask: np.ndarray, min_contour_pts: int = 5,
         (cx, cy), (ax1, ax2), angle = ellipse
 
         if ax2 > ax1:
-            major_px = ax2 / 2
-            minor_px = ax1 / 2
+            major_px = ax2
+            minor_px = ax1
             angle = angle + 90  # rotate angle to match the actual major axis
         else:
-            major_px = ax1 / 2
-            minor_px = ax2 / 2
+            major_px = ax1
+            minor_px = ax2
 
         
         perimeter = cv2.arcLength(contour, True)
@@ -113,10 +113,10 @@ def extract_bacteria_features(mask: np.ndarray, min_contour_pts: int = 5,
             'bacteria_id':         prop.label,
             'contour':             contour,
             'center':              (int(prop.centroid[1]), int(prop.centroid[0])),
-            'major_radius_pixels': major_px,
-            'minor_radius_pixels': minor_px,
-            'major_radius':        major_px * ratio,
-            'minor_radius':        minor_px * ratio,
+            'major_axis_pixels': major_px,
+            'minor_axis_pixels': minor_px,
+            'major_axis':        major_px * ratio,
+            'minor_axis':        minor_px * ratio,
             'ellipse_angle':       angle,
             'area_pixels':         prop.area,
             'area':                prop.area * ratio ** 2,
@@ -320,7 +320,7 @@ def main():
 
         with open(csv_path, 'w', newline='') as f:
             writer = csv.DictWriter(f, fieldnames=[
-                'bacteria_id', 'center', 'major_radius', 'minor_radius',
+                'bacteria_id', 'center', 'major_axis', 'minor_axis',
                 'area', 'aspect_ratio', 'texture',
             ])
             writer.writeheader()
@@ -328,13 +328,12 @@ def main():
                 writer.writerow({
                     'bacteria_id':  b['bacteria_id'],
                     'center':       b['center'],
-                    'major_radius': b['major_radius'],
-                    'minor_radius': b['minor_radius'],
+                    'major_axis':   b['major_axis'],
+                    'minor_axis':   b['minor_axis'],
                     'area':         b['area'],
                     'aspect_ratio': b['aspect_ratio'],
                     'texture':      b['texture'],
                 })
-    
 
 if __name__ == "__main__":
     main()
