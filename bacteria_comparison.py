@@ -98,71 +98,6 @@ for col, title, _ in PLOTS:
     print()
 
 
-# # ── Plot helper ────────────────────────────────────────────────────────────────
-# BLUE = "#4a7ba7"
-
-# def make_boxplot(col: str, title: str, ylabel: str):
-#     groups = [
-#         all_data[all_data["treatment"] == t][col].dropna().values
-#         for t in TREATMENT_ORDER
-#     ]
-#     ctrl_vals = groups[0]
-
-#     fig, ax = plt.subplots(figsize=(12, 7))
-
-#     bp = ax.boxplot(
-#         groups,
-#         patch_artist=True,
-#         widths=0.55,
-#         showfliers=False,
-#         medianprops=dict(color="white", linewidth=2),
-#         whiskerprops=dict(color="#333333", linewidth=1.2),
-#         capprops=dict(color="#333333", linewidth=1.2),
-#     )
-#     for patch in bp["boxes"]:
-#         patch.set_facecolor(BLUE)
-#         patch.set_edgecolor("#333333")
-#         patch.set_linewidth(1.2)
-
-#     ax.set_xticks(range(1, len(TREATMENT_ORDER) + 1))
-#     ax.set_xticklabels([TREATMENT_LABELS[t] for t in TREATMENT_ORDER], fontsize=14)
-#     ax.set_ylabel(ylabel, fontsize=15)
-#     ax.set_xlabel("Arachidonic Acid Treatment", fontsize=15)
-#     ax.set_title(f"Bacteria {title} Comparison Across Treatments",
-#                 fontsize=16, fontweight="bold", pad=40)
-#     ax.tick_params(axis='y', labelsize=13)
-#     ax.set_axisbelow(True)
-#     if col in ("minor_axis", "major_axis"):
-#         ax.set_ylim(0, 2)
-#     ax.spines["top"].set_visible(False)
-#     ax.spines["right"].set_visible(False)
-
-#     # Significance annotations (Cliff's δ vs control)
-#     ctrl_mean = np.mean(ctrl_vals)
-#     all_vals = np.concatenate(groups)
-#     y_range = all_vals.max() - all_vals.min()
-#     y_offset = y_range * 0.04
-
-#     print(f"\n── {title} — per-group stats ──────────────────────────────")
-#     print(f"  {'Treatment':<14} {'n':>6} {'δ vs ctrl':>10}")
-#     print(f"  {'Control':<14} {len(ctrl_vals):>6} {'—':>10}")
-#     for i, (t, g) in enumerate(zip(TREATMENT_ORDER[1:], groups[1:]), start=2):
-#         d = cliffs_delta(ctrl_vals, g)
-#         lbl = delta_label(d)
-#         direction = "" if lbl == "ns" else ("↑" if np.median(g) > np.median(ctrl_vals) else "↓")
-#         print(f"  {TREATMENT_LABELS[t]:<14} {len(g):>6} {d:>+10.3f}  {lbl}{direction}")
-#         whisker_top = np.percentile(g, 75) + 1.5 * (np.percentile(g, 75) - np.percentile(g, 25))
-#         whisker_top = min(whisker_top, g.max())
-#         annotation = f"{lbl}{direction}"
-#         ax.text(i, whisker_top + y_offset, annotation,
-#                 ha="center", va="bottom", fontsize=9, fontweight="bold", color="#333333")
-
-#     plt.tight_layout(rect=[0, 0.03, 1, 1])
-#     fname = os.path.join(OUT_DIR, f"{col}_comparison.png")
-#     plt.savefig(fname, dpi=180, bbox_inches="tight")
-#     plt.close()
-#     print(f"Saved → {fname}")
-
 BLUE = "#2c5f8a"
 LIGHT_BLUE = "#d0e4f2"
 
@@ -207,7 +142,7 @@ def make_boxplot(col: str, title: str, ylabel: str):
         fontsize=14, fontweight="bold", color="#222222"
     )
     ax.set_ylabel(ylabel, fontsize=15, fontweight="bold", color="#222222", labelpad=10)
-    ax.set_xlabel("Arachidonic Acid Treatment", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
+    ax.set_xlabel("Arachidonic acid (µg/ml)", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
     ax.set_title(
         f"{title}",
         fontsize=16, fontweight="bold", color="#1a1a2e", pad=40
@@ -231,17 +166,30 @@ def make_boxplot(col: str, title: str, ylabel: str):
         direction = "" if lbl == "ns" else ("↑" if np.median(g) > np.median(ctrl_vals) else "↓")
         whisker_top = np.percentile(g, 75) + 1.5 * (np.percentile(g, 75) - np.percentile(g, 25))
         whisker_top = min(whisker_top, g.max())
-        annotation = f"{lbl}{direction}"
+        d_str = f"δ={d:+.3f}"
+        annotation = f"{lbl}{direction}\n{d_str}" if lbl != "ns" else lbl
         color = "#2980b9"
         ax.text(i, whisker_top + y_offset, annotation,
-                ha="center", va="bottom", fontsize=10,
+                ha="center", va="bottom", fontsize=14,
                 fontweight="bold", color=color)
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     fname = os.path.join(OUT_DIR, f"{col}_comparison.png")
     plt.savefig(fname, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close()
+
+    print(f"── {title} — Median values ──────────────────────────────")
+    ctrl_median = np.median(ctrl_vals)
+    print(f"  Control median: {ctrl_median:.3f}")
+    for t in TREATMENT_ORDER[1:]:
+        trt_vals = all_data[all_data["treatment"] == t][col].dropna().values
+        trt_median = np.median(trt_vals)
+        pct_change = ((trt_median - ctrl_median) / ctrl_median) * 100
+        print(f"  {TREATMENT_LABELS[t]:<14}: median={trt_median:.3f}, change={pct_change:+.1f}%")
+    print()
+
     print(f"Saved → {fname}")
+
 
 # ── Generate all 5 plots ───────────────────────────────────────────────────────
 for col, title, ylabel in PLOTS:

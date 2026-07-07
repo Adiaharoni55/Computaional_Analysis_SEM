@@ -22,8 +22,8 @@ CROP_BOTTOM = 70
 BG_TILE_SIZE          = 10
 BG_STD_THRESHOLD      = 5
 BG_MIN_REGION_SIZE    = 50
-BG_MIN_CONTRAST_RATIO = 20.0
-BG_MAX_REGION_MEAN    = 0.1   # tiles in true empty substrate have edge-std ≈ 0;
+BG_MIN_CONTRAST_RATIO = 60.0
+BG_MAX_REGION_MEAN    = 0.8   # tiles in true empty substrate have edge-std ≈ 0;
                                # biofilm matrix between bacteria has mean 0.2–0.9
 
 # Texture analysis parameters
@@ -104,10 +104,9 @@ def compute_edges(img):
 
     sobel_x = cv2.Sobel(smoothed, cv2.CV_64F, 1, 0, ksize=3)
     sobel_y = cv2.Sobel(smoothed, cv2.CV_64F, 0, 1, ksize=3)
-    edges = cv2.addWeighted(
-        cv2.convertScaleAbs(sobel_x), 0.5,
-        cv2.convertScaleAbs(sobel_y), 0.5, 0
-    )
+
+    edges = cv2.magnitude(sobel_x, sobel_y)
+    edges = np.uint8(np.clip(edges, 0, 255))
 
     # Remove small isolated edge blobs (debris/noise artifacts)
     _, binary = cv2.threshold(edges, 10, 255, cv2.THRESH_BINARY)

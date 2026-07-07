@@ -105,7 +105,7 @@ ax.set_xticklabels([TREATMENT_LABELS[t] for t in TREATMENT_ORDER], fontsize=14, 
 ax.tick_params(axis='y', labelsize=13, width=2, length=5, color="#222222")
 ax.tick_params(axis='x', width=2, length=5, color="#222222")
 ax.set_ylabel("Mean Patch Level STD of Edges", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
-ax.set_xlabel("Treatment", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
+ax.set_xlabel("Arachidonic acid (µg/ml)", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
 ax.set_title("Biofilm Matrix Quantification", fontsize=16, fontweight="bold", color="#1a1a2e", pad=12)
 ax.yaxis.grid(True, linestyle="--", alpha=0.6, color="#cccccc", linewidth=1.0)
 ax.set_axisbelow(True)
@@ -135,7 +135,7 @@ for i, t in enumerate(TREATMENT_ORDER[1:], start=2):
     annotation = f"{label}{arrow}\n{p_str}" if p_str else label
     color = "#2980b9"
     ax.text(i, whisker_top + y_offset, annotation, ha="center", va="bottom",
-            fontsize=10, fontweight="bold", color=color)
+            fontsize=14, fontweight="bold", color=color)
 
 plt.tight_layout()
 out_path = "results/structure_comparison_boxplot.png"
@@ -175,6 +175,7 @@ bp2 = ax2.boxplot(
     patch_artist=True,
     widths=0.55,
     showfliers=False,
+    zorder=0,                          # ← push all original boxes to background
     medianprops=dict(color="white", linewidth=2.5),
     whiskerprops=dict(color=BLUE, linewidth=1.8, linestyle="--"),
     capprops=dict(color=BLUE, linewidth=2.2),
@@ -187,12 +188,21 @@ for i, patch in enumerate(bp2["boxes"]):
     patch.set_linewidth(1.8)
     patch.set_alpha(0.85)
 
-# For zero-variance groups the box has zero height — draw an explicit filled bar
-for i, g in enumerate(cov_groups, start=1):
-    if np.std(g) == 0:
-        ax2.bar(i, 2, bottom=np.mean(g) - 1, width=0.55,
-                color=BLUE,
-                edgecolor=BLUE, linewidth=1.8, zorder=2, alpha=0.85)
+for i, (patch, g) in enumerate(zip(bp2["boxes"], cov_groups), start=1):
+    q1, q3 = np.percentile(g, [25, 75])
+    if q1 == q3:                       # ← collapsed box (IQR = 0)
+        patch.set_visible(False)
+        bar_height = 4
+        ax2.bar(i, bar_height, bottom=np.median(g) - bar_height / 2, width=0.55,
+                color=BLUE, edgecolor="#1a3a5c", linewidth=1.8, zorder=3, alpha=0.85)
+        ax2.plot([i - 0.275, i + 0.275], [np.median(g), np.median(g)],
+                 color="white", linewidth=2.5, zorder=4)
+    else:
+        patch.set_facecolor(BLUE)
+        patch.set_edgecolor(BLUE)
+        patch.set_linewidth(1.8)
+        patch.set_alpha(0.85)
+
 
 for spine in ["left", "bottom"]:
     ax2.spines[spine].set_linewidth(2.0)
@@ -205,7 +215,7 @@ ax2.set_xticklabels([TREATMENT_LABELS[t] for t in TREATMENT_ORDER], fontsize=14,
 ax2.tick_params(axis='y', labelsize=13, width=2, length=5, color="#222222")
 ax2.tick_params(axis='x', width=2, length=5, color="#222222")
 ax2.set_ylabel("Bacteria Coverage (%)", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
-ax2.set_xlabel("Treatment", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
+ax2.set_xlabel("Arachidonic acid (µg/ml)", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
 ax2.set_title("Biofilm Coverage Comparison Across Treatments", fontsize=16, fontweight="bold", color="#1a1a2e", pad=12)
 ax2.set_ylim(0, 115)
 ax2.yaxis.grid(True, linestyle="--", alpha=0.6, color="#cccccc", linewidth=1.0)
@@ -223,7 +233,7 @@ for i, t in enumerate(TREATMENT_ORDER[1:], start=2):
     annotation = f"{label}{arrow}\n{p_str}" if p_str else label
     color = "#c0392b" if "↑" in annotation else "#2980b9" if "↓" in annotation else "#555555"
     ax2.text(i, whisker_top, annotation, ha="center", va="bottom",
-             fontsize=10, fontweight="bold", color=color)
+             fontsize=14, fontweight="bold", color=color)
 
 plt.tight_layout()
 cov_out_path = "results/coverage_comparison_boxplot.png"
