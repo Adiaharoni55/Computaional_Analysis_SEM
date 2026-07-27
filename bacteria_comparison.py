@@ -31,9 +31,9 @@ TREATMENT_LABELS = {
 }
 
 PLOTS = [
-    ("minor_axis", "(B) Minor Axis",  "Minor Axis Length (µm)"),
-    ("major_axis", "(A) Major Axis",  "Major Axis Length (µm)"),
-    ("aspect_ratio", "(C) Aspect Ratio", "Aspect Ratio (major/minor)"),
+    ("minor_axis", "Minor Axis",  "Minor Axis Length (µm)"),
+    ("major_axis", "Major Axis",  "Major Axis Length (µm)"),
+    ("aspect_ratio", "Aspect Ratio", "Aspect Ratio (major/minor)"),
     ("area",         "Area",             "Area (µm²)"),
     ("texture",      "Texture",          "Texture (RMS residual)"),
 ]
@@ -110,7 +110,7 @@ def make_boxplot(col: str, title: str, ylabel: str):
 
     fig, ax = plt.subplots(figsize=(12, 7))
     fig.patch.set_facecolor("white")
-    ax.set_facecolor("#f8f9fa")
+    ax.set_facecolor("white")
 
     bp = ax.boxplot(
         groups,

@@ -68,7 +68,7 @@ LIGHT_BLUE = "#d0e4f2"
 
 fig, ax = plt.subplots(figsize=(12, 7))
 fig.patch.set_facecolor("white")
-ax.set_facecolor("#f8f9fa")
+ax.set_facecolor("white")
 
 medians = [np.median(g) for g in groups]
 norm = plt.Normalize(min(medians), max(medians))
@@ -168,7 +168,7 @@ for t, g in zip(TREATMENT_ORDER[1:], cov_groups[1:]):
 
 fig2, ax2 = plt.subplots(figsize=(12, 7))
 fig2.patch.set_facecolor("white")
-ax2.set_facecolor("#f8f9fa")
+ax2.set_facecolor("white")
 
 bp2 = ax2.boxplot(
     cov_groups,

@@ -6,7 +6,6 @@ from pathlib import Path
 from cellpose import models
 from skimage.measure import regionprops
 import cv2
-from scipy.spatial import cKDTree
 
 
 MODEL_TYPE   = "cyto3"
