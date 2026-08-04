@@ -96,6 +96,57 @@ pip install -r requirements.txt
 
 ---
 
+## Usage
+
+### Expected data layout
+
+Both analysis scripts read from `./data/<treatment>/20000/*.tif`, only processing images at 20000x magnification:
+
+```
+data/
+├── control/
+│   └── 20000/*.tif
+├── 6.25 ug:ml/
+│   └── 20000/*.tif
+├── 12.5 ug:ml/
+│   └── 20000/*.tif
+├── 25 ug:ml/
+│   └── 20000/*.tif
+└── 50 ug:ml/
+    └── 20000/*.tif
+```
+
+### 1. Run bacterial segmentation & feature extraction
+
+```bash
+python bacteria_features.py
+```
+
+Writes one CSV per image to `results/feature_extraction/features/{treatment}/`.
+
+### 2. Run biofilm matrix structure analysis
+
+```bash
+python biofilm_stracture.py
+```
+
+Writes per-image PNG visualizations and CSV summaries (including `combined_summary.csv`) to `results/matrix/`.
+
+### 3. Compare treatments
+
+Once the corresponding step above has been run, generate the treatment comparison plots/stats:
+
+```bash
+python bacteria_comparison.py    # Cliff's delta boxplots from feature_extraction output → results/bacteria_comparison/
+python structure_comparison.py   # Mann-Whitney U tests from results/matrix/combined_summary.csv
+```
+
+### Notebooks
+
+[extract_bacteria_features.ipynb](extract_bacteria_features.ipynb) and [extract_biofilm_stracture.ipynb](extract_biofilm_stracture.ipynb) provide interactive/step-by-step versions of scripts 1 and 2 respectively.
+
+---
+
 ## Goal
 
 To build a robust computational pipeline that combines AI-based segmentation with image processing for accurate and interpretable analysis of bacterial morphology and biofilm matrix structure in SEM images.
