@@ -2,8 +2,6 @@
 
 ---
 
-# SEM Bacteria Image Processing and Segmentation
-
 ## Overview
 
 This project focuses on the detection and analysis of bacterial structures in Scanning Electron Microscopy (SEM) images. It contains two main scripts, each targeting a different aspect of the analysis:
