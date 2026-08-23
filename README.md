@@ -1,3 +1,7 @@
+# Code to accompany the paper: "Computational Framework for Quantitative Analysis of _Streptococcus mutans_ Biofilms Using HR-SEM and Confocal Microscopy"
+
+---
+
 # SEM Bacteria Image Processing and Segmentation
 
 ## Overview
@@ -151,8 +155,3 @@ python structure_comparison.py   # Mann-Whitney U tests from results/matrix/comb
 
 To build a robust computational pipeline that combines AI-based segmentation with image processing for accurate and interpretable analysis of bacterial morphology and biofilm matrix structure in SEM images.
 
----
-
-## Notes
-
-This project was developed as part of an M.Sc. research project.
