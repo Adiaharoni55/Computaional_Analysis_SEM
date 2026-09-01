@@ -4,39 +4,27 @@ Loads per-bacterium feature CSVs and produces 5 boxplot comparisons.
 """
 
 import os
+import json
 import glob
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from pathlib import Path
+
+CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
+with open(CONFIG_PATH) as _f:
+    CONFIG = json.load(_f)
+
+_BC_CFG = CONFIG["bacteria_comparison"]
 
 # ── Constants ──────────────────────────────────────────────────────────────────
-FEATURES_DIR = "results/feature_extraction/features"
-OUT_DIR = "results/bacteria_comparison"
+FEATURES_DIR = _BC_CFG["features_dir"]
+OUT_DIR = _BC_CFG["out_dir"]
 os.makedirs(OUT_DIR, exist_ok=True)
 
-TREATMENT_ORDER = [
-    "control",
-    "6.25 ug:ml",
-    "12.5 ug:ml",
-    "25 ug:ml",
-    "50 ug:ml",
-]
-
-TREATMENT_LABELS = {
-    "control":     "Control",
-    "6.25 ug:ml":  "6.25 µg/ml",
-    "12.5 ug:ml":  "12.5 µg/ml",
-    "25 ug:ml":    "25 µg/ml",
-    "50 ug:ml":    "50 µg/ml",
-}
-
-PLOTS = [
-    ("minor_axis", "Minor Axis",  "Minor Axis Length (µm)"),
-    ("major_axis", "Major Axis",  "Major Axis Length (µm)"),
-    ("aspect_ratio", "Aspect Ratio", "Aspect Ratio (major/minor)"),
-    ("area",         "Area",             "Area (µm²)"),
-    ("texture",      "Texture",          "Texture (RMS residual)"),
-]
+TREATMENT_ORDER = CONFIG["shared"]["treatment_order"]
+TREATMENT_LABELS = CONFIG["shared"]["treatment_labels"]
+PLOTS = [tuple(p) for p in _BC_CFG["plots"]]
 
 # ── Load data ──────────────────────────────────────────────────────────────────
 def load_treatment(treatment: str) -> pd.DataFrame:
@@ -70,11 +58,12 @@ def cliffs_delta(x: np.ndarray, y: np.ndarray) -> float:
 
 def delta_label(delta: float) -> str:
     ad = abs(delta)
-    if ad >= 0.474:
+    thresholds = _BC_CFG["cliffs_delta_thresholds"]
+    if ad >= thresholds["large"]:
         return "***"
-    elif ad >= 0.33:
+    elif ad >= thresholds["medium"]:
         return "**"
-    elif ad >= 0.147:
+    elif ad >= thresholds["small"]:
         return "*"
     return "ns"
 
@@ -98,8 +87,8 @@ for col, title, _ in PLOTS:
     print()
 
 
-BLUE = "#2c5f8a"
-LIGHT_BLUE = "#d0e4f2"
+BLUE = CONFIG["colors"]["blue"]
+LIGHT_BLUE = CONFIG["colors"]["light_blue"]
 
 def make_boxplot(col: str, title: str, ylabel: str):
     groups = [
@@ -152,8 +141,8 @@ def make_boxplot(col: str, title: str, ylabel: str):
     ax.yaxis.grid(True, linestyle="--", alpha=0.6, color="#cccccc", linewidth=1.0)
     ax.set_axisbelow(True)
 
-    if col in ("minor_axis", "major_axis"):
-        ax.set_ylim(0, 4)
+    if col in _BC_CFG["axis_limited_features"]:
+        ax.set_ylim(*_BC_CFG["axis_ylim"])
 
     # Significance annotations
     all_vals = np.concatenate(groups)
@@ -175,7 +164,7 @@ def make_boxplot(col: str, title: str, ylabel: str):
 
     plt.tight_layout(rect=[0, 0.03, 1, 1])
     fname = os.path.join(OUT_DIR, f"{col}_comparison.png")
-    plt.savefig(fname, dpi=200, bbox_inches="tight", facecolor="white")
+    plt.savefig(fname, dpi=_BC_CFG["figure_dpi"], bbox_inches="tight", facecolor="white")
     plt.close()
 
     print(f"── {title} — Median values ──────────────────────────────")

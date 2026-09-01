@@ -1,4 +1,5 @@
 import csv
+import json
 import numpy as np
 import matplotlib.pyplot as plt
 from PIL import Image
@@ -7,15 +8,20 @@ from cellpose import models
 from skimage.measure import regionprops
 import cv2
 
+CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
+with open(CONFIG_PATH) as _f:
+    CONFIG = json.load(_f)
 
-MODEL_TYPE   = "cyto3"
-FLOW_THRESH  = 0.4       
-CELLPROB_THRESH = -2.0   
-DIAMETER = None      
+_BF_CFG = CONFIG["bacteria_features"]
 
-INPUT_DIR  = Path('./data')
-OUTPUT_DIR = Path('./results/feature_extraction')
-TREATMENTS = ['6.25 ug:ml', '12.5 ug:ml', '25 ug:ml', '50 ug:ml', 'control']
+MODEL_TYPE      = _BF_CFG["segmentation"]["model_type"]
+FLOW_THRESH     = _BF_CFG["segmentation"]["flow_threshold"]
+CELLPROB_THRESH = _BF_CFG["segmentation"]["cellprob_threshold"]
+DIAMETER        = _BF_CFG["segmentation"]["diameter"]
+
+INPUT_DIR  = Path(CONFIG["shared"]["input_dir"])
+OUTPUT_DIR = Path(_BF_CFG["output_dir"])
+TREATMENTS = CONFIG["shared"]["treatments_scan_order"]
 
 
 def run_segmentation(img):
@@ -67,14 +73,15 @@ def is_touching_border(contour, mask_shape, margin=1):
     )
 
 
-def extract_bacteria_features(mask: np.ndarray, min_contour_pts: int = 5,
-                               min_area_px: int = 1000) -> list[dict]:
+def extract_bacteria_features(mask: np.ndarray,
+                               min_contour_pts: int = _BF_CFG["contour_filter"]["min_contour_points"],
+                               min_area_px: int = _BF_CFG["contour_filter"]["min_area_px"]) -> list[dict]:
     bacteria_list = []
     dropped = []
     mask_shape = mask.shape
 
-    SCALE_BAR_UM = 5.0
-    SCALE_BAR_PX = 185
+    SCALE_BAR_UM = _BF_CFG["scale_bar"]["length_um"]
+    SCALE_BAR_PX = _BF_CFG["scale_bar"]["length_px"]
     ratio = SCALE_BAR_UM / SCALE_BAR_PX
 
     for prop in regionprops(mask):
@@ -133,8 +140,8 @@ def extract_bacteria_features(mask: np.ndarray, min_contour_pts: int = 5,
 
 def filter_bacteria_by_shape(
     bacteria_list: list[dict],
-    min_ellipse_fit: float = 0.8,
-    min_area: int = 1000,
+    min_ellipse_fit: float = _BF_CFG["shape_filter"]["min_ellipse_fit_score"],
+    min_area: int = _BF_CFG["shape_filter"]["min_area_px"],
 ) -> tuple[list[dict], list[dict], dict]:
     """
     Filter out bacteria that are:
@@ -213,32 +220,34 @@ def add_texture(bacteria_list, image):
         cv2.drawContours(mask, [b['contour']], -1, 1, thickness=-1)
         
         # Erode to avoid edges
-        kernel = np.ones((7, 7), np.uint8)
-        inner_mask = cv2.erode(mask, kernel, iterations=2)
-        
+        tex_cfg = _BF_CFG["texture"]
+        kernel = np.ones((tex_cfg["erode_kernel_size"], tex_cfg["erode_kernel_size"]), np.uint8)
+        inner_mask = cv2.erode(mask, kernel, iterations=tex_cfg["erode_iterations"])
+
         # Get bounding box
         ys, xs = np.where(mask == 1)
         if len(ys) == 0:
             b['texture'] = 0.0
             continue
-        
-        pad = 5
+
+        pad = tex_cfg["patch_padding_px"]
         y1, y2 = max(0, ys.min() - pad), min(img.shape[0], ys.max() + pad)
         x1, x2 = max(0, xs.min() - pad), min(img.shape[1], xs.max() + pad)
-        
+
         patch = img[y1:y2, x1:x2]
         mask_p = inner_mask[y1:y2, x1:x2]
 
         valid = mask_p > 0
         n_valid = np.sum(valid)
-        if n_valid < 50:
+        if n_valid < tex_cfg["min_valid_pixels"]:
             b['texture'] = 0.0
             continue
 
         # Edge-preserving smoothing: removes pixel-level noise but preserves
         # real membrane ridges/bumps (spatially coherent structures)
         patch_smooth = cv2.bilateralFilter(
-            patch.astype(np.float32), d=5, sigmaColor=0.08, sigmaSpace=9
+            patch.astype(np.float32), d=tex_cfg["bilateral_d"],
+            sigmaColor=tex_cfg["bilateral_sigma_color"], sigmaSpace=tex_cfg["bilateral_sigma_space"]
         ).astype(np.float64)
 
         # Get coordinates and values
@@ -269,7 +278,7 @@ def process_image(image_path):
 
     height, width = original_image.shape
 
-    image = original_image[:height - 70, :]
+    image = original_image[:height - CONFIG["shared"]["crop_bottom_px"], :]
 
     masks = run_segmentation(image)
 
@@ -279,10 +288,7 @@ def process_image(image_path):
     treatment = image_path.parent.parent.name   # e.g. "control", "6.25 ug/ml"
     sample    = image_path.stem                 # e.g. "Sample 7_07"
 
-    bacteria_list_filtered = filter_bacteria_by_shape(
-        bacteria_list,
-        min_ellipse_fit=0.8,
-    )  
+    bacteria_list_filtered = filter_bacteria_by_shape(bacteria_list)
 
     out_path_filter = OUTPUT_DIR / 'filter' / treatment
     out_path_filter.mkdir(parents=True, exist_ok=True)

@@ -1,4 +1,5 @@
 import os
+import json
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
@@ -12,24 +13,32 @@ warnings.filterwarnings('ignore')
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
-INPUT_DIR  = Path('./data')
-OUTPUT_DIR = Path('./results/matrix')
-TREATMENTS = ['6.25 ug:ml', '12.5 ug:ml', '25 ug:ml', '50 ug:ml', 'control']
+CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
+with open(CONFIG_PATH) as _f:
+    CONFIG = json.load(_f)
 
-CROP_BOTTOM = 70
+_BS_CFG = CONFIG["biofilm_structure"]
+
+INPUT_DIR  = Path(CONFIG["shared"]["input_dir"])
+OUTPUT_DIR = Path(_BS_CFG["output_dir"])
+TREATMENTS = CONFIG["shared"]["treatments_scan_order"]
+
+CROP_BOTTOM = CONFIG["shared"]["crop_bottom_px"]
 
 # Background detection parameters
-BG_TILE_SIZE          = 10
-BG_STD_THRESHOLD      = 5
-BG_MIN_REGION_SIZE    = 50
-BG_MIN_CONTRAST_RATIO = 60.0
-BG_MAX_REGION_MEAN    = 0.8   # tiles in true empty substrate have edge-std ≈ 0;
-                               # biofilm matrix between bacteria has mean 0.2–0.9
+_bg_cfg = _BS_CFG["background_detection"]
+BG_TILE_SIZE          = _bg_cfg["tile_size"]
+BG_STD_THRESHOLD      = _bg_cfg["std_threshold"]
+BG_MIN_REGION_SIZE    = _bg_cfg["min_region_size"]
+BG_MIN_CONTRAST_RATIO = _bg_cfg["min_contrast_ratio"]
+BG_MAX_REGION_MEAN    = _bg_cfg["max_region_mean"]   # tiles in true empty substrate have edge-std ≈ 0;
+                                                       # biofilm matrix between bacteria has mean 0.2–0.9
 
 # Texture analysis parameters
-MATRIX_TILE_SIZE     = 100
-VMIN, VMAX           = 5, 80
-HEATMAP_SMOOTH_SIGMA = 15
+_tex_cfg = _BS_CFG["texture_analysis"]
+MATRIX_TILE_SIZE     = _tex_cfg["tile_size"]
+VMIN, VMAX           = _tex_cfg["vmin"], _tex_cfg["vmax"]
+HEATMAP_SMOOTH_SIGMA = _tex_cfg["heatmap_smooth_sigma"]
 
 
 # ============================================================================
@@ -96,22 +105,25 @@ def get_biofilm_mask(img):
 
 def compute_edges(img):
     """Smooth image and apply Sobel edge detection."""
-    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
-    opened = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, iterations=2)
+    edge_cfg = _BS_CFG["edge_detection"]
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (edge_cfg["morph_kernel_size"],) * 2)
+    opened = cv2.morphologyEx(img, cv2.MORPH_OPEN, kernel, iterations=edge_cfg["morph_open_iterations"])
 
-    wls = cv2.ximgproc.createFastGlobalSmootherFilter(opened, lambda_=10, sigma_color=10)
+    wls = cv2.ximgproc.createFastGlobalSmootherFilter(
+        opened, lambda_=edge_cfg["smoother_lambda"], sigma_color=edge_cfg["smoother_sigma_color"]
+    )
     smoothed = wls.filter(opened)
 
-    sobel_x = cv2.Sobel(smoothed, cv2.CV_64F, 1, 0, ksize=3)
-    sobel_y = cv2.Sobel(smoothed, cv2.CV_64F, 0, 1, ksize=3)
+    sobel_x = cv2.Sobel(smoothed, cv2.CV_64F, 1, 0, ksize=edge_cfg["sobel_ksize"])
+    sobel_y = cv2.Sobel(smoothed, cv2.CV_64F, 0, 1, ksize=edge_cfg["sobel_ksize"])
 
     edges = cv2.magnitude(sobel_x, sobel_y)
     edges = np.uint8(np.clip(edges, 0, 255))
 
     # Remove small isolated edge blobs (debris/noise artifacts)
-    _, binary = cv2.threshold(edges, 10, 255, cv2.THRESH_BINARY)
+    _, binary = cv2.threshold(edges, edge_cfg["binary_threshold"], 255, cv2.THRESH_BINARY)
     num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary, connectivity=8)
-    min_area = 500  # bacteria edge loops are much larger than debris spots
+    min_area = edge_cfg["min_debris_area_px"]  # bacteria edge loops are much larger than debris spots
     clean_mask = np.zeros_like(binary)
     for i in range(1, num_labels):
         if stats[i, cv2.CC_STAT_AREA] >= min_area:
@@ -152,7 +164,7 @@ def analyze_tiles(edge_img, biofilm_mask, tile_size=MATRIX_TILE_SIZE,
     for yi in range(0, h_p - tile_size + 1, stride):
         for xi in range(0, w_p - tile_size + 1, stride):
             tile_mask = mask_padded[yi:yi + tile_size, xi:xi + tile_size]
-            if np.sum(tile_mask) / (tile_size * tile_size) <= 0.3:
+            if np.sum(tile_mask) / (tile_size * tile_size) <= _BS_CFG["texture_analysis"]["min_tile_coverage_frac"]:
                 continue
 
             biofilm_pixels = img_padded[yi:yi + tile_size, xi:xi + tile_size][tile_mask]
@@ -299,7 +311,7 @@ def process_all():
             original, edges, scores_raw, scores_smoothed, kernel_values,
             f"{treatment_name} - {magnification} - {path.stem}"
         )
-        fig.savefig(out_dir / f"{path.stem}.png", dpi=150, bbox_inches='tight')
+        fig.savefig(out_dir / f"{path.stem}.png", dpi=_BS_CFG["figure_dpi"], bbox_inches='tight')
         plt.close(fig)
 
         valid_tiles = tile_values[tile_values > 0] if len(tile_values) > 0 else np.array([])

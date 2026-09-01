@@ -1,0 +1,124 @@
+{
+  "shared": {
+    "input_dir": "./data",
+    "crop_bottom_px": 70,
+    "treatment_order": [
+      "control",
+      "6.25 ug:ml",
+      "12.5 ug:ml",
+      "25 ug:ml",
+      "50 ug:ml"
+    ],
+    "treatment_labels": {
+      "control": "Control",
+      "6.25 ug:ml": "6.25 µg/ml",
+      "12.5 ug:ml": "12.5 µg/ml",
+      "25 ug:ml": "25 µg/ml",
+      "50 ug:ml": "50 µg/ml"
+    },
+    "treatments_scan_order": [
+      "6.25 ug:ml",
+      "12.5 ug:ml",
+      "25 ug:ml",
+      "50 ug:ml",
+      "control"
+    ]
+  },
+
+  "colors": {
+    "blue": "#2c5f8a",
+    "light_blue": "#d0e4f2"
+  },
+
+  "bacteria_features": {
+    "output_dir": "./results/feature_extraction",
+    "segmentation": {
+      "model_type": "cyto3",
+      "flow_threshold": 0.4,
+      "cellprob_threshold": -2.0,
+      "diameter": null
+    },
+    "scale_bar": {
+      "length_um": 5.0,
+      "length_px": 185
+    },
+    "contour_filter": {
+      "min_contour_points": 5,
+      "min_area_px": 1000
+    },
+    "shape_filter": {
+      "min_ellipse_fit_score": 0.8,
+      "min_area_px": 1000
+    },
+    "texture": {
+      "erode_kernel_size": 7,
+      "erode_iterations": 2,
+      "patch_padding_px": 5,
+      "min_valid_pixels": 50,
+      "bilateral_d": 5,
+      "bilateral_sigma_color": 0.08,
+      "bilateral_sigma_space": 9
+    }
+  },
+
+  "biofilm_structure": {
+    "output_dir": "./results/matrix",
+    "background_detection": {
+      "tile_size": 10,
+      "std_threshold": 5,
+      "min_region_size": 50,
+      "min_contrast_ratio": 60.0,
+      "max_region_mean": 0.8
+    },
+    "edge_detection": {
+      "morph_open_iterations": 2,
+      "morph_kernel_size": 3,
+      "smoother_lambda": 10,
+      "smoother_sigma_color": 10,
+      "sobel_ksize": 3,
+      "binary_threshold": 10,
+      "min_debris_area_px": 500
+    },
+    "texture_analysis": {
+      "tile_size": 100,
+      "min_tile_coverage_frac": 0.3,
+      "vmin": 5,
+      "vmax": 80,
+      "heatmap_smooth_sigma": 15
+    },
+    "figure_dpi": 150
+  },
+
+  "bacteria_comparison": {
+    "features_dir": "results/feature_extraction/features",
+    "out_dir": "results/bacteria_comparison",
+    "plots": [
+      ["minor_axis", "Minor Axis", "Minor Axis Length (µm)"],
+      ["major_axis", "Major Axis", "Major Axis Length (µm)"],
+      ["aspect_ratio", "Aspect Ratio", "Aspect Ratio (major/minor)"],
+      ["area", "Area", "Area (µm²)"],
+      ["texture", "Texture", "Texture (RMS residual)"]
+    ],
+    "cliffs_delta_thresholds": {
+      "large": 0.474,
+      "medium": 0.33,
+      "small": 0.147
+    },
+    "axis_limited_features": ["minor_axis", "major_axis"],
+    "axis_ylim": [0, 4],
+    "figure_dpi": 200
+  },
+
+  "structure_comparison": {
+    "summary_csv": "results/matrix/combined_summary.csv",
+    "texture_boxplot_out": "results/structure_comparison_boxplot.png",
+    "coverage_boxplot_out": "results/coverage_comparison_boxplot.png",
+    "significance_thresholds": {
+      "p001": 0.001,
+      "p01": 0.01,
+      "p05": 0.05
+    },
+    "coverage_ylim": [0, 115],
+    "figure_dpi": 200
+  }
+}

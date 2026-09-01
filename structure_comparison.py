@@ -3,33 +3,27 @@ Structure comparison: Mann-Whitney U test on image mean texture across treatment
 Uses all 18 images per treatment at magnification 20000.
 """
 
+import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
 from itertools import combinations
 import matplotlib.cm as cm
+from pathlib import Path
 
+CONFIG_PATH = Path(__file__).resolve().parent / "config.json"
+with open(CONFIG_PATH) as _f:
+    CONFIG = json.load(_f)
+
+_SC_CFG = CONFIG["structure_comparison"]
 
 # ── Load data ──────────────────────────────────────────────────────────────────
-df = pd.read_csv("results/matrix/combined_summary.csv")
+df = pd.read_csv(_SC_CFG["summary_csv"])
 
 # Treatment display order (control first, then ascending concentration)
-TREATMENT_ORDER = [
-    "control",
-    "6.25 ug:ml",
-    "12.5 ug:ml",
-    "25 ug:ml",
-    "50 ug:ml",
-]
-
-TREATMENT_LABELS = {
-    "control":     "Control",
-    "6.25 ug:ml":  "6.25 µg/ml",
-    "12.5 ug:ml":  "12.5 µg/ml",
-    "25 ug:ml":    "25 µg/ml",
-    "50 ug:ml":    "50 µg/ml",
-}
+TREATMENT_ORDER = CONFIG["shared"]["treatment_order"]
+TREATMENT_LABELS = CONFIG["shared"]["treatment_labels"]
 
 groups = [df[df["treatment"] == t]["mean_texture"].values for t in TREATMENT_ORDER]
 
@@ -63,8 +57,8 @@ for (t1, g1), (t2, g2) in combinations(zip(TREATMENT_ORDER, groups), 2):
     print(f"  {TREATMENT_LABELS[t1]:>12s} vs {TREATMENT_LABELS[t2]:<12s}:  U={stat:.1f},  p={p:.4f}")
 
 # ── Plot ────────────────────────────────────────────────────────────────────────
-BLUE = "#2c5f8a"
-LIGHT_BLUE = "#d0e4f2"
+BLUE = CONFIG["colors"]["blue"]
+LIGHT_BLUE = CONFIG["colors"]["light_blue"]
 
 fig, ax = plt.subplots(figsize=(12, 7))
 fig.patch.set_facecolor("white")
@@ -112,11 +106,12 @@ ax.set_axisbelow(True)
 
 # Significance labels based on Bonferroni-corrected U-test p-value
 def sig_label(p):
-    if p < 0.001:
+    thresholds = _SC_CFG["significance_thresholds"]
+    if p < thresholds["p001"]:
         return "***"
-    elif p < 0.01:
+    elif p < thresholds["p01"]:
         return "**"
-    elif p < 0.05:
+    elif p < thresholds["p05"]:
         return "*"
     return "ns"
 
@@ -138,8 +133,8 @@ for i, t in enumerate(TREATMENT_ORDER[1:], start=2):
             fontsize=14, fontweight="bold", color=color)
 
 plt.tight_layout()
-out_path = "results/structure_comparison_boxplot.png"
-plt.savefig(out_path, dpi=200, bbox_inches="tight", facecolor="white")
+out_path = _SC_CFG["texture_boxplot_out"]
+plt.savefig(out_path, dpi=_SC_CFG["figure_dpi"], bbox_inches="tight", facecolor="white")
 print(f"\nPlot saved → {out_path}")
 plt.show()
 
@@ -217,7 +212,7 @@ ax2.tick_params(axis='x', width=2, length=5, color="#222222")
 ax2.set_ylabel("Bacteria Coverage (%)", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
 ax2.set_xlabel("Arachidonic acid (µg/ml)", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
 ax2.set_title("Biofilm Coverage Comparison Across Treatments", fontsize=16, fontweight="bold", color="#1a1a2e", pad=12)
-ax2.set_ylim(0, 115)
+ax2.set_ylim(*_SC_CFG["coverage_ylim"])
 ax2.yaxis.grid(True, linestyle="--", alpha=0.6, color="#cccccc", linewidth=1.0)
 ax2.set_axisbelow(True)
 
@@ -236,7 +231,7 @@ for i, t in enumerate(TREATMENT_ORDER[1:], start=2):
              fontsize=14, fontweight="bold", color=color)
 
 plt.tight_layout()
-cov_out_path = "results/coverage_comparison_boxplot.png"
-fig2.savefig(cov_out_path, dpi=200, bbox_inches="tight", facecolor="white")
+cov_out_path = _SC_CFG["coverage_boxplot_out"]
+fig2.savefig(cov_out_path, dpi=_SC_CFG["figure_dpi"], bbox_inches="tight", facecolor="white")
 print(f"\nPlot saved → {cov_out_path}")
 plt.show()
