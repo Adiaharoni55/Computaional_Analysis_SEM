@@ -100,7 +100,7 @@ ax.tick_params(axis='y', labelsize=13, width=2, length=5, color="#222222")
 ax.tick_params(axis='x', width=2, length=5, color="#222222")
 ax.set_ylabel("Mean Patch Level STD of Edges", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
 ax.set_xlabel("Arachidonic acid (µg/ml)", fontsize=15, fontweight="bold", color="#222222", labelpad=10)
-ax.set_title("Biofilm Matrix Quantification", fontsize=16, fontweight="bold", color="#1a1a2e", pad=12)
+ax.set_title("Intercellular Space Quantification", fontsize=16, fontweight="bold", color="#1a1a2e", pad=12)
 ax.yaxis.grid(True, linestyle="--", alpha=0.6, color="#cccccc", linewidth=1.0)
 ax.set_axisbelow(True)
 
